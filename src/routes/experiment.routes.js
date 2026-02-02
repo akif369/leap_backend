@@ -3,7 +3,7 @@ const { protect, allowRoles } = require("../middlewares/auth.middleware");
 const {
   getExperimentSubmissions,
 } = require("../controllers/submission.controller");
-const Problem = require("../models/problem.model");
+const Problem = require("../models/Problem");
 
 
 // 👩‍🏫 Teacher / HOD grading list
@@ -16,11 +16,15 @@ router.get(
 
 // Get single experiment (problem)
 router.get("/:experimentId", protect, async (req, res) => {
-  const experiment = await Problem.findById(req.params.experimentId);
-  if (!experiment) {
-    return res.status(404).json({ message: "Experiment not found" });
+  try {
+    const experiment = await Problem.findById(req.params.experimentId);
+    if (!experiment) {
+      return res.status(404).json({ message: "Experiment not found" });
+    }
+    res.json(experiment);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
-  res.json(experiment);
 });
 
 module.exports = router;

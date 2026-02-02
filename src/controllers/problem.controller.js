@@ -10,7 +10,9 @@ exports.createProblem = async (req, res) => {
     if (!lab) return res.status(404).json({ message: "Lab not found" });
 
     // 🔐 Check if teacher is assigned to this lab
-    const isAssigned = lab.assignedTeachers.includes(req.user.id);
+    const isAssigned = lab.assignedTeachers.some(
+      (teacherId) => teacherId.toString() === req.user.id
+    );
     if (!isAssigned) {
       return res.status(403).json({ message: "Not assigned to this lab" });
     }
@@ -31,8 +33,12 @@ exports.createProblem = async (req, res) => {
 
 // Get problems of a lab
 exports.getProblemsByLab = async (req, res) => {
-  const { labId } = req.params;
+  try {
+    const { labId } = req.params;
 
-  const problems = await Problem.find({ labId });
-  res.json(problems);
+    const problems = await Problem.find({ labId });
+    res.json(problems);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };

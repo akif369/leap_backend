@@ -20,9 +20,13 @@ exports.createLab = async (req, res) => {
 
 // Get all labs
 exports.getLabs = async (req, res) => {
-  const labs = await Lab.find()
-    .populate("assignedTeachers", "name email")
-    .populate("createdBy", "name");
+  try {
+    const labs = await Lab.find()
+      .populate("assignedTeachers", "name email")
+      .populate("createdBy", "name");
 
-  res.json(labs);
+    res.json(labs);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };
