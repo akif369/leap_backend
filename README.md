@@ -21,4 +21,35 @@ Node.js + Express + MongoDB + JWT Authentication backend.
 
 ```bash
 npm install
+npm run seed
 npm run dev
+```
+
+## Seed Default Data
+
+The seed command is idempotent (safe to run multiple times). It creates default users, labs, and experiments.
+
+```bash
+npm run seed
+```
+
+## Default Login Accounts
+
+Use `POST /api/auth/login` with `email` (or `idOrUsername`) and `password`.
+
+| Role    | Email                    | Password   |
+|---------|--------------------------|------------|
+| admin   | admin@leap.local         | admin123   |
+| hod     | hod@leap.local           | hod123     |
+| teacher | teacher.os@leap.local    | teacher123 |
+| teacher | teacher.algo@leap.local  | teacher123 |
+| student | stu-01@leap.local        | student123 |
+| student | stu-02@leap.local        | student123 |
+
+Students also have roll numbers seeded:
+- `stu-01`
+- `stu-02`
+
+So you can also login with:
+- `idOrUsername: "stu-01"` + `password: "student123"`
+- `idOrUsername: "stu-02"` + `password: "student123"`

@@ -1,11 +1,28 @@
 const bcrypt = require("bcrypt");
 const User = require("../models/User");
 const { signToken } = require("../utils/token");
+const mongoose = require("mongoose");
 
 // ✅ Register
 exports.register = async (req, res) => {
   try {
-    const { name, email, password, role, rollNo, batch } = req.body;
+    const {
+      name,
+      email,
+      password,
+      role,
+      rollNo,
+      batch,
+      year,
+      semester,
+      section,
+      courseIds,
+      labIds,
+    } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "name, email and password are required" });
+    }
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -21,15 +38,27 @@ exports.register = async (req, res) => {
       role: role || "student",
       rollNo,
       batch,
+      year,
+      semester,
+      section,
+      courseIds: Array.isArray(courseIds) ? courseIds : [],
+      labIds: Array.isArray(labIds) ? labIds : [],
     });
 
     return res.status(201).json({
       message: "Registered successfully ✅",
       user: {
-        id: user._id,
+        id: user._id.toString(),
         name: user.name,
         email: user.email,
         role: user.role,
+        rollNo: user.rollNo,
+        batch: user.batch,
+        year: user.year,
+        semester: user.semester,
+        section: user.section,
+        courseIds: user.courseIds || [],
+        labIds: user.labIds || [],
       },
     });
   } catch (error) {
@@ -40,13 +69,28 @@ exports.register = async (req, res) => {
 // ✅ Login
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, idOrUsername, password, role } = req.body;
+    const identifier = (email || idOrUsername || "").trim();
 
-    const user = await User.findOne({ email });
-    if (!user) return res.status(401).json({ message: "Invalid email or password" });
+    if (!identifier || !password) {
+      return res.status(400).json({ message: "idOrUsername/email and password are required" });
+    }
+
+    const query = [
+      { email: identifier.toLowerCase() },
+      { rollNo: identifier },
+    ];
+
+    if (mongoose.Types.ObjectId.isValid(identifier)) {
+      query.push({ _id: identifier });
+    }
+
+    const user = await User.findOne({ $or: query });
+    if (!user) return res.status(401).json({ message: "Invalid credentials" });
 
     const isPasswordCorrect = await bcrypt.compare(password, user.password);
-    if (!isPasswordCorrect) return res.status(401).json({ message: "Invalid email or password" });
+    if (!isPasswordCorrect) return res.status(401).json({ message: "Invalid credentials" });
+    if (role && user.role !== role) return res.status(401).json({ message: "Invalid credentials" });
 
     const token = signToken({ id: user._id, role: user.role });
 
@@ -54,10 +98,17 @@ exports.login = async (req, res) => {
       message: "Login successful ✅",
       token,
       user: {
-        id: user._id,
+        id: user._id.toString(),
         name: user.name,
         role: user.role,
         email: user.email,
+        rollNo: user.rollNo,
+        batch: user.batch,
+        year: user.year,
+        semester: user.semester,
+        section: user.section,
+        courseIds: user.courseIds || [],
+        labIds: user.labIds || [],
       },
     });
   } catch (error) {
@@ -77,12 +128,17 @@ exports.getMe = async (req, res) => {
     }
 
     return res.json({
-      id: user._id,
+      id: user._id.toString(),
       name: user.name,
       email: user.email,
       role: user.role,
       rollNo: user.rollNo,
       batch: user.batch,
+      year: user.year,
+      semester: user.semester,
+      section: user.section,
+      courseIds: user.courseIds || [],
+      labIds: user.labIds || [],
     });
   } catch (error) {
     return res.status(500).json({

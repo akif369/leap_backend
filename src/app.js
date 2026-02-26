@@ -8,6 +8,7 @@ const submissionRoutes = require("./routes/submission.routes");
 const experimentRoutes = require("./routes/experiment.routes");
 const labRoutes = require("./routes/lab.routes");
 const problemRoutes = require("./routes/problem.routes");
+const userRoutes = require("./routes/user.routes");
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.use("/api/labs", labRoutes);
 app.use("/api/problems", problemRoutes);
 app.use("/api/submissions", submissionRoutes);
 app.use("/api/experiments", experimentRoutes);
+app.use("/api/users", userRoutes);
 
 
 module.exports = app;

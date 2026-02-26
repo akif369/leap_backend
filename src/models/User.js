@@ -16,6 +16,11 @@ const userSchema = new mongoose.Schema(
 
     rollNo: { type: String }, // only for student
     batch: { type: String }, // optional
+    year: { type: String },
+    semester: { type: String },
+    section: { type: String },
+    courseIds: [{ type: String }],
+    labIds: [{ type: String }],
   },
   { timestamps: true }
 );

@@ -41,9 +41,9 @@ exports.upsertSubmission = async (req, res) => {
 
     return res.status(200).json({
       submission: {
-        id: submission._id,
-        studentId: submission.studentId,
-        experimentId: submission.experimentId,
+        id: submission._id.toString(),
+        studentId: submission.studentId.toString(),
+        experimentId: submission.experimentId.toString(),
         status: submission.status,
         score: submission.score,
         lastSaved: submission.lastSaved,
@@ -81,9 +81,9 @@ exports.getMySubmission = async (req, res) => {
 
     return res.json({
       submission: {
-        id: submission._id,
-        studentId: submission.studentId,
-        experimentId: submission.experimentId,
+        id: submission._id.toString(),
+        studentId: submission.studentId.toString(),
+        experimentId: submission.experimentId.toString(),
         status: submission.status,
         score: submission.score,
         lastSaved: submission.lastSaved,
@@ -111,14 +111,24 @@ exports.getSubmissionById = async (req, res) => {
 
     return res.json({
       submission: {
-        id: submission._id,
-        studentId: submission.studentId,
-        experimentId: submission.experimentId,
+        id: submission._id.toString(),
+        studentId:
+          typeof submission.studentId === "object"
+            ? submission.studentId._id?.toString?.() || submission.studentId.toString()
+            : submission.studentId.toString(),
+        experimentId: submission.experimentId.toString(),
         status: submission.status,
         score: submission.score,
         feedback: submission.feedback,
         lastSaved: submission.lastSaved,
       },
+      student:
+        typeof submission.studentId === "object"
+          ? {
+              id: submission.studentId._id?.toString?.() || submission.studentId.toString(),
+              name: submission.studentId.name,
+            }
+          : null,
       files: submission.files,
     });
   } catch (error) {
@@ -138,15 +148,15 @@ exports.getExperimentSubmissions = async (req, res) => {
 
     const response = submissions.map((sub) => ({
       submission: {
-        id: sub._id,
-        studentId: sub.studentId._id,
-        experimentId: sub.experimentId,
+        id: sub._id.toString(),
+        studentId: sub.studentId._id.toString(),
+        experimentId: sub.experimentId.toString(),
         status: sub.status,
         score: sub.score,
         lastSaved: sub.lastSaved,
       },
       student: {
-        id: sub.studentId._id,
+        id: sub.studentId._id.toString(),
         name: sub.studentId.name,
         email: sub.studentId.email,
       },
@@ -186,9 +196,9 @@ exports.validateSubmission = async (req, res) => {
 
     return res.json({
       submission: {
-        id: submission._id,
-        studentId: submission.studentId,
-        experimentId: submission.experimentId,
+        id: submission._id.toString(),
+        studentId: submission.studentId.toString(),
+        experimentId: submission.experimentId.toString(),
         status: submission.status,
         score: submission.score,
         lastSaved: submission.lastSaved,
