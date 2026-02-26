@@ -12,6 +12,25 @@ const projectFileSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const aiEvaluationSchema = new mongoose.Schema(
+  {
+    provider: { type: String },
+    model: { type: String },
+    codeQualityScore: { type: Number },
+    outputMatchScore: { type: Number },
+    rawScore: { type: Number },
+    latePenalty: { type: Number },
+    finalScore: { type: Number },
+    daysLate: { type: Number },
+    dueAt: { type: Date },
+    submittedAt: { type: Date },
+    reasoning: { type: String },
+    outputVerification: { type: String },
+    issues: [{ type: String }],
+  },
+  { _id: false }
+);
+
 const submissionSchema = new mongoose.Schema(
   {
     experimentId: {
@@ -54,6 +73,16 @@ const submissionSchema = new mongoose.Schema(
     lastSaved: {
       type: Date,
       default: Date.now,
+    },
+
+    submittedAt: {
+      type: Date,
+      default: null,
+    },
+
+    aiEvaluation: {
+      type: aiEvaluationSchema,
+      default: null,
     },
   },
   {

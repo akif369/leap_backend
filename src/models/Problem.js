@@ -16,6 +16,9 @@ const problemSchema = new mongoose.Schema(
     hints: [{ type: String }],
     helperLinks: [{ type: String }],
 
+    dueAt: { type: Date },
+    latePenaltyPerDay: { type: Number, default: 0.5 },
+
     maxMarks: { type: Number, default: 10 },
 
     createdBy: {

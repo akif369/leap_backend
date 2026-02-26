@@ -7,6 +7,8 @@ const User = require("../models/User");
 const Lab = require("../models/Lab");
 const Problem = require("../models/Problem");
 
+const inDaysIso = (days) => new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+
 const seedUsers = [
   {
     key: "admin",
@@ -96,6 +98,8 @@ const seedProblemsByLabKey = {
       ],
       helperLinks: ["https://en.wikipedia.org/wiki/Round-robin_scheduling"],
       maxMarks: 10,
+      dueAt: inDaysIso(10),
+      latePenaltyPerDay: 0.5,
     },
     {
       title: "Deadlock Detector",
@@ -104,6 +108,8 @@ const seedProblemsByLabKey = {
       hints: ["Normalize matrix dimensions before processing.", "Cover impossible cases early."],
       helperLinks: [],
       maxMarks: 10,
+      dueAt: inDaysIso(12),
+      latePenaltyPerDay: 0.5,
     },
   ],
   lab_net: [
@@ -114,6 +120,8 @@ const seedProblemsByLabKey = {
       hints: ["Seed your RNG for repeatable tests.", "Surface retry counts."],
       helperLinks: [],
       maxMarks: 10,
+      dueAt: inDaysIso(14),
+      latePenaltyPerDay: 0.5,
     },
   ],
   lab_algo: [
@@ -124,6 +132,8 @@ const seedProblemsByLabKey = {
       hints: ["Cache by amount, not index.", "Cover impossible cases early."],
       helperLinks: [],
       maxMarks: 10,
+      dueAt: inDaysIso(8),
+      latePenaltyPerDay: 0.5,
     },
   ],
 };
@@ -181,6 +191,8 @@ async function upsertProblem(problemDef, labId, actorId) {
         hints: problemDef.hints,
         helperLinks: problemDef.helperLinks,
         maxMarks: problemDef.maxMarks,
+        dueAt: problemDef.dueAt ? new Date(problemDef.dueAt) : undefined,
+        latePenaltyPerDay: problemDef.latePenaltyPerDay,
         createdBy: actorId,
       },
     },

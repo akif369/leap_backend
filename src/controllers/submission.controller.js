@@ -1,5 +1,29 @@
 const Submission = require("../models/Submission");
 const Problem = require("../models/Problem");
+const { MAX_SCORE, evaluateSubmissionWithAI } = require("../services/aiGrader.service");
+
+const normalizeScore = (value) => {
+  if (value === null || value === undefined) return value;
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return null;
+  const adjusted = numeric > MAX_SCORE ? numeric / 10 : numeric;
+  return Math.round(adjusted * 10) / 10;
+};
+
+const mapSubmission = (submission) => ({
+  id: submission._id.toString(),
+  studentId:
+    typeof submission.studentId === "object"
+      ? submission.studentId._id?.toString?.() || submission.studentId.toString()
+      : submission.studentId.toString(),
+  experimentId: submission.experimentId.toString(),
+  status: submission.status,
+  score: normalizeScore(submission.score),
+  feedback: submission.feedback,
+  submittedAt: submission.submittedAt,
+  aiEvaluation: submission.aiEvaluation || null,
+  lastSaved: submission.lastSaved,
+});
 
 /**
  * POST /api/submissions
@@ -8,7 +32,7 @@ const Problem = require("../models/Problem");
 exports.upsertSubmission = async (req, res) => {
   try {
     const studentId = req.user.id;
-    const { experimentId, status, files } = req.body;
+    const { experimentId, status, files, executionResult } = req.body;
 
     if (!experimentId || !files) {
       return res.status(400).json({
@@ -22,16 +46,43 @@ exports.upsertSubmission = async (req, res) => {
       return res.status(404).json({ message: "Experiment not found" });
     }
 
-    // Upsert submission
+    const existing = await Submission.findOne({ experimentId, studentId });
+    const nextStatus = status || existing?.status || "draft";
+    const now = new Date();
+    const submittedAt =
+      nextStatus === "submitted"
+        ? existing?.submittedAt || now
+        : existing?.submittedAt || null;
+
+    let grading = null;
+    if (nextStatus === "submitted") {
+      grading = await evaluateSubmissionWithAI({
+        problem: experiment,
+        files,
+        executionResult,
+        submittedAt: submittedAt || now,
+      });
+    }
+
+    const updateDoc = {
+      experimentId,
+      studentId,
+      files,
+      status: nextStatus,
+      lastSaved: now,
+      ...(submittedAt ? { submittedAt } : {}),
+      ...(grading
+        ? {
+            score: grading.score,
+            feedback: grading.feedback,
+            aiEvaluation: grading.aiEvaluation,
+          }
+        : {}),
+    };
+
     const submission = await Submission.findOneAndUpdate(
       { experimentId, studentId },
-      {
-        experimentId,
-        studentId,
-        files,
-        status: status || "draft",
-        lastSaved: new Date(),
-      },
+      updateDoc,
       {
         new: true,
         upsert: true,
@@ -39,16 +90,7 @@ exports.upsertSubmission = async (req, res) => {
       }
     );
 
-    return res.status(200).json({
-      submission: {
-        id: submission._id.toString(),
-        studentId: submission.studentId.toString(),
-        experimentId: submission.experimentId.toString(),
-        status: submission.status,
-        score: submission.score,
-        lastSaved: submission.lastSaved,
-      },
-    });
+    return res.status(200).json({ submission: mapSubmission(submission) });
   } catch (error) {
     return res.status(500).json({
       message: "Server error",
@@ -80,14 +122,7 @@ exports.getMySubmission = async (req, res) => {
     }
 
     return res.json({
-      submission: {
-        id: submission._id.toString(),
-        studentId: submission.studentId.toString(),
-        experimentId: submission.experimentId.toString(),
-        status: submission.status,
-        score: submission.score,
-        lastSaved: submission.lastSaved,
-      },
+      submission: mapSubmission(submission),
       files: submission.files,
     });
   } catch (error) {
@@ -110,18 +145,7 @@ exports.getSubmissionById = async (req, res) => {
     }
 
     return res.json({
-      submission: {
-        id: submission._id.toString(),
-        studentId:
-          typeof submission.studentId === "object"
-            ? submission.studentId._id?.toString?.() || submission.studentId.toString()
-            : submission.studentId.toString(),
-        experimentId: submission.experimentId.toString(),
-        status: submission.status,
-        score: submission.score,
-        feedback: submission.feedback,
-        lastSaved: submission.lastSaved,
-      },
+      submission: mapSubmission(submission),
       student:
         typeof submission.studentId === "object"
           ? {
@@ -147,14 +171,7 @@ exports.getExperimentSubmissions = async (req, res) => {
       .sort({ lastSaved: -1 });
 
     const response = submissions.map((sub) => ({
-      submission: {
-        id: sub._id.toString(),
-        studentId: sub.studentId._id.toString(),
-        experimentId: sub.experimentId.toString(),
-        status: sub.status,
-        score: sub.score,
-        lastSaved: sub.lastSaved,
-      },
+      submission: mapSubmission(sub),
       student: {
         id: sub.studentId._id.toString(),
         name: sub.studentId.name,
@@ -181,13 +198,18 @@ exports.validateSubmission = async (req, res) => {
       return res.status(400).json({ message: "Score is required" });
     }
 
+    const numericScore = Number(score);
+    if (!Number.isFinite(numericScore) || numericScore < 0 || numericScore > MAX_SCORE) {
+      return res.status(400).json({ message: `Score must be between 0 and ${MAX_SCORE}` });
+    }
+
     const submission = await Submission.findById(submissionId);
     if (!submission) {
       return res.status(404).json({ message: "Submission not found" });
     }
 
     submission.status = "validated";
-    submission.score = score;
+    submission.score = Math.round(numericScore * 10) / 10;
     submission.feedback = feedback || "";
     submission.evaluatedBy = teacherId;
     submission.lastSaved = new Date();
@@ -195,14 +217,7 @@ exports.validateSubmission = async (req, res) => {
     await submission.save();
 
     return res.json({
-      submission: {
-        id: submission._id.toString(),
-        studentId: submission.studentId.toString(),
-        experimentId: submission.experimentId.toString(),
-        status: submission.status,
-        score: submission.score,
-        lastSaved: submission.lastSaved,
-      },
+      submission: mapSubmission(submission),
     });
   } catch (error) {
     return res.status(500).json({

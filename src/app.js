@@ -9,6 +9,7 @@ const experimentRoutes = require("./routes/experiment.routes");
 const labRoutes = require("./routes/lab.routes");
 const problemRoutes = require("./routes/problem.routes");
 const userRoutes = require("./routes/user.routes");
+const gradeRoutes = require("./routes/grade.routes");
 
 const app = express();
 
@@ -29,6 +30,7 @@ app.use("/api/problems", problemRoutes);
 app.use("/api/submissions", submissionRoutes);
 app.use("/api/experiments", experimentRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/grade", gradeRoutes);
 
 
 module.exports = app;

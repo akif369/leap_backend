@@ -4,7 +4,7 @@ const Lab = require("../models/Lab");
 // Add problem to lab
 exports.createProblem = async (req, res) => {
   try {
-    const { labId, title, description, maxMarks, expectedOutput, hints, helperLinks } = req.body;
+    const { labId, title, description, expectedOutput, hints, helperLinks, dueAt, latePenaltyPerDay } = req.body;
 
     const lab = await Lab.findById(labId);
     if (!lab) return res.status(404).json({ message: "Lab not found" });
@@ -25,7 +25,9 @@ exports.createProblem = async (req, res) => {
       expectedOutput,
       hints: Array.isArray(hints) ? hints : [],
       helperLinks: Array.isArray(helperLinks) ? helperLinks : [],
-      maxMarks,
+      maxMarks: 10,
+      dueAt: dueAt ? new Date(dueAt) : undefined,
+      latePenaltyPerDay,
       createdBy: req.user.id,
     });
 
@@ -51,7 +53,7 @@ exports.getProblemsByLab = async (req, res) => {
 exports.updateProblem = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, expectedOutput, hints, helperLinks, maxMarks } = req.body;
+    const { title, description, expectedOutput, hints, helperLinks, dueAt, latePenaltyPerDay } = req.body;
 
     const existing = await Problem.findById(id);
     if (!existing) return res.status(404).json({ message: "Problem not found" });
@@ -72,7 +74,9 @@ exports.updateProblem = async (req, res) => {
         ...(expectedOutput !== undefined ? { expectedOutput } : {}),
         ...(hints !== undefined ? { hints: Array.isArray(hints) ? hints : [] } : {}),
         ...(helperLinks !== undefined ? { helperLinks: Array.isArray(helperLinks) ? helperLinks : [] } : {}),
-        ...(maxMarks !== undefined ? { maxMarks } : {}),
+        maxMarks: 10,
+        ...(dueAt !== undefined ? { dueAt: dueAt ? new Date(dueAt) : null } : {}),
+        ...(latePenaltyPerDay !== undefined ? { latePenaltyPerDay } : {}),
       },
       { new: true }
     );
