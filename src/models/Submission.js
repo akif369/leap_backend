@@ -26,7 +26,19 @@ const aiEvaluationSchema = new mongoose.Schema(
     submittedAt: { type: Date },
     reasoning: { type: String },
     outputVerification: { type: String },
+    outputMatched: { type: Boolean },
+    mistakeFlags: [{ type: String }],
+    suspectedCheating: { type: Boolean, default: false },
+    cheatingReason: { type: String },
     issues: [{ type: String }],
+    teacherOverride: { type: Boolean, default: false },
+    teacherOverrideBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    teacherOverrideAt: { type: Date, default: null },
+    teacherOverrideScore: { type: Number, default: null },
   },
   { _id: false }
 );

@@ -49,6 +49,12 @@ If `GEMINI_API_KEY` is missing, backend uses a local heuristic fallback scorer.
 2. Code-quality score
 3. Late penalty using experiment `dueAt` and `latePenaltyPerDay`
 - Final score saved in submission as `score` (0-10) with `feedback`.
+- Output verification is used as a first gate (weak output match cannot get high score).
+- Print-only/hardcoded expected output patterns are flagged as suspected cheating and heavily penalized.
+- If submission is on time and output matches expected behavior, AI assigns full marks (10/10).
+- Student submit flow auto-validates with AI (`status` becomes `validated`).
+- Teacher can always verify and override AI score from grading screen (`PUT /api/submissions/:submissionId`).
+- Teacher can run optional AI re-check with temporary `expectedOutputOverride`/`descriptionOverride` via `POST /api/grade/run`.
 
 Optional manual grading preview endpoint:
 

@@ -64,11 +64,13 @@ exports.upsertSubmission = async (req, res) => {
       });
     }
 
+    const effectiveStatus = grading ? "validated" : nextStatus;
+
     const updateDoc = {
       experimentId,
       studentId,
       files,
-      status: nextStatus,
+      status: effectiveStatus,
       lastSaved: now,
       ...(submittedAt ? { submittedAt } : {}),
       ...(grading
@@ -76,6 +78,7 @@ exports.upsertSubmission = async (req, res) => {
             score: grading.score,
             feedback: grading.feedback,
             aiEvaluation: grading.aiEvaluation,
+            evaluatedBy: null,
           }
         : {}),
     };
@@ -213,6 +216,13 @@ exports.validateSubmission = async (req, res) => {
     submission.feedback = feedback || "";
     submission.evaluatedBy = teacherId;
     submission.lastSaved = new Date();
+    submission.aiEvaluation = {
+      ...(submission.aiEvaluation || {}),
+      teacherOverride: true,
+      teacherOverrideBy: teacherId,
+      teacherOverrideAt: new Date(),
+      teacherOverrideScore: submission.score,
+    };
 
     await submission.save();
 

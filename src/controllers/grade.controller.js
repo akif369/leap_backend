@@ -3,7 +3,7 @@ const { MAX_SCORE, evaluateSubmissionWithAI } = require("../services/aiGrader.se
 
 exports.runAiGrade = async (req, res) => {
   try {
-    const { experimentId, files, executionResult, submittedAt } = req.body;
+    const { experimentId, files, executionResult, submittedAt, expectedOutputOverride, descriptionOverride } = req.body;
 
     if (!experimentId || !Array.isArray(files)) {
       return res.status(400).json({ message: "experimentId and files are required" });
@@ -14,8 +14,23 @@ exports.runAiGrade = async (req, res) => {
       return res.status(404).json({ message: "Experiment not found" });
     }
 
+    const gradingProblem =
+      expectedOutputOverride || descriptionOverride
+        ? {
+            ...experiment.toObject(),
+            expectedOutput:
+              typeof expectedOutputOverride === "string" && expectedOutputOverride.trim()
+                ? expectedOutputOverride.trim()
+                : experiment.expectedOutput,
+            description:
+              typeof descriptionOverride === "string" && descriptionOverride.trim()
+                ? descriptionOverride.trim()
+                : experiment.description,
+          }
+        : experiment;
+
     const grading = await evaluateSubmissionWithAI({
-      problem: experiment,
+      problem: gradingProblem,
       files,
       executionResult,
       submittedAt: submittedAt ? new Date(submittedAt) : new Date(),
@@ -34,4 +49,3 @@ exports.runAiGrade = async (req, res) => {
     });
   }
 };
-
