@@ -170,7 +170,7 @@ exports.getExperimentSubmissions = async (req, res) => {
     const { experimentId } = req.params;
 
     const submissions = await Submission.find({ experimentId })
-      .populate("studentId", "name email")
+      .populate("studentId", "name email rollNo")
       .sort({ lastSaved: -1 });
 
     const response = submissions.map((sub) => ({
@@ -179,6 +179,7 @@ exports.getExperimentSubmissions = async (req, res) => {
         id: sub.studentId._id.toString(),
         name: sub.studentId.name,
         email: sub.studentId.email,
+        rollNo: sub.studentId.rollNo || "",
       },
     }));
 

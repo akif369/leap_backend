@@ -69,7 +69,7 @@ exports.register = async (req, res) => {
 // ✅ Login
 exports.login = async (req, res) => {
   try {
-    const { email, idOrUsername, password, role } = req.body;
+    const { email, idOrUsername, password } = req.body;
     const identifier = (email || idOrUsername || "").trim();
 
     if (!identifier || !password) {
@@ -90,7 +90,6 @@ exports.login = async (req, res) => {
 
     const isPasswordCorrect = await bcrypt.compare(password, user.password);
     if (!isPasswordCorrect) return res.status(401).json({ message: "Invalid credentials" });
-    if (role && user.role !== role) return res.status(401).json({ message: "Invalid credentials" });
 
     const token = signToken({ id: user._id, role: user.role });
 
