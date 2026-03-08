@@ -312,11 +312,6 @@ function buildFeedback({
   finalScore,
   daysLate,
   latePenalty,
-  reasoning,
-  issues,
-  suspectedCheating,
-  cheatingReason,
-  mistakeFlags,
 }) {
   const lines = [
     `AI score: ${finalScore}/${MAX_SCORE}`,
@@ -325,20 +320,9 @@ function buildFeedback({
   ];
 
   if (daysLate > 0) {
-    lines.push(`Late penalty: -${latePenalty} (${daysLate} day(s) late)`);
+    lines.push(`Submission timing: ${daysLate} day(s) late (-${latePenalty})`);
   } else {
     lines.push("Submission timing: on time");
-  }
-
-  if (reasoning) lines.push(`Review: ${reasoning}`);
-  if (Array.isArray(mistakeFlags) && mistakeFlags.length > 0) {
-    lines.push(`Mistakes: ${mistakeFlags.slice(0, 4).join("; ")}`);
-  }
-  if (suspectedCheating) {
-    lines.push(`Cheating flag: ${cheatingReason || "Potential print-only/hardcoded output detected"}`);
-  }
-  if (Array.isArray(issues) && issues.length > 0) {
-    lines.push(`Key issues: ${issues.slice(0, 3).join("; ")}`);
   }
 
   return lines.join("\n");
@@ -375,7 +359,7 @@ async function evaluateSubmissionWithAI({ problem, files, executionResult, submi
     model = DEFAULT_MODEL;
   } else {
     codeQualityScore = heuristicCodeScore(normalizedFiles);
-    reasoning = `Fallback grading used because AI call failed: ${aiResponse.message}`;
+    reasoning = "Fallback grading used because AI review is currently unavailable.";
   }
 
   if (!Number.isFinite(codeQualityScore)) {
