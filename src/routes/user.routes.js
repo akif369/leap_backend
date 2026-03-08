@@ -2,6 +2,7 @@ const router = require("express").Router();
 const { protect, allowRoles } = require("../middlewares/auth.middleware");
 const {
   getUsers,
+  getStudentProfile,
   createUser,
   updateUser,
   deleteUser,
@@ -10,6 +11,7 @@ const {
 } = require("../controllers/user.controller");
 
 router.get("/", protect, allowRoles("admin", "hod", "teacher"), getUsers);
+router.get("/:id/profile", protect, allowRoles("admin", "hod", "teacher"), getStudentProfile);
 router.post("/", protect, allowRoles("admin", "hod", "teacher"), createUser);
 router.put("/:id", protect, allowRoles("admin", "hod", "teacher"), updateUser);
 router.put("/me/password", protect, changeOwnPassword);

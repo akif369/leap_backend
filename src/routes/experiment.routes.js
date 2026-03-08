@@ -3,6 +3,11 @@ const { protect, allowRoles } = require("../middlewares/auth.middleware");
 const {
   getExperimentSubmissions,
 } = require("../controllers/submission.controller");
+const {
+  getExperimentVivaQuestions,
+  createExperimentVivaQuestion,
+  generateExperimentVivaQuestions,
+} = require("../controllers/vivaQuestion.controller");
 const Problem = require("../models/Problem");
 
 
@@ -12,6 +17,27 @@ router.get(
   protect,
   allowRoles("teacher", "hod"),
   getExperimentSubmissions
+);
+
+router.get(
+  "/:experimentId/viva-questions",
+  protect,
+  allowRoles("teacher", "hod", "admin"),
+  getExperimentVivaQuestions
+);
+
+router.post(
+  "/:experimentId/viva-questions",
+  protect,
+  allowRoles("teacher", "hod", "admin"),
+  createExperimentVivaQuestion
+);
+
+router.post(
+  "/:experimentId/viva-questions/generate",
+  protect,
+  allowRoles("teacher", "hod", "admin"),
+  generateExperimentVivaQuestions
 );
 
 // Get single experiment (problem)

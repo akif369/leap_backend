@@ -1,5 +1,8 @@
 const bcrypt = require("bcrypt");
 const User = require("../models/User");
+const Submission = require("../models/Submission");
+const Problem = require("../models/Problem");
+const Lab = require("../models/Lab");
 
 const toPublicUser = (userDoc) => ({
   id: userDoc._id.toString(),
@@ -40,6 +43,8 @@ const pickAllowedUpdateFields = (body, fields) => {
   return out;
 };
 
+const round1 = (value) => Math.round(value * 10) / 10;
+
 exports.getUsers = async (req, res) => {
   try {
     const { role } = req.query;
@@ -50,6 +55,92 @@ exports.getUsers = async (req, res) => {
     return res.json(users.map(toPublicUser));
   } catch (error) {
     return res.status(500).json({ message: "Failed to fetch users", error: error.message });
+  }
+};
+
+exports.getStudentProfile = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const actor = { id: req.user.id, role: req.user.role };
+
+    const student = await User.findById(id).select("-password");
+    if (!student || student.role !== "student") {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    if (!canManageUser(actor, student)) {
+      return res.status(403).json({ message: "You are not allowed to view this student profile" });
+    }
+
+    const submissions = await Submission.find({ studentId: id }).sort({ lastSaved: -1 }).lean();
+    const experimentIds = Array.from(
+      new Set(submissions.map((row) => row.experimentId?.toString()).filter(Boolean))
+    );
+    const experiments = await Problem.find({ _id: { $in: experimentIds } })
+      .select("title labId dueAt")
+      .lean();
+    const experimentsById = new Map(experiments.map((row) => [row._id.toString(), row]));
+
+    const labIds = Array.from(new Set(experiments.map((row) => row.labId?.toString()).filter(Boolean)));
+    const labs = await Lab.find({ _id: { $in: labIds } }).select("name subject").lean();
+    const labsById = new Map(labs.map((row) => [row._id.toString(), row]));
+
+    const details = submissions.map((row) => {
+      const experiment = experimentsById.get(row.experimentId?.toString());
+      const lab = experiment?.labId ? labsById.get(experiment.labId.toString()) : null;
+      const dueAt = experiment?.dueAt ? new Date(experiment.dueAt) : null;
+      const submittedAt = row.submittedAt ? new Date(row.submittedAt) : null;
+      const onTime =
+        !dueAt || !submittedAt || Number.isNaN(dueAt.getTime()) || Number.isNaN(submittedAt.getTime())
+          ? true
+          : submittedAt.getTime() <= dueAt.getTime();
+
+      return {
+        id: row._id.toString(),
+        experimentId: row.experimentId?.toString() || "",
+        experimentTitle: experiment?.title || "Unknown Experiment",
+        labId: experiment?.labId?.toString() || "",
+        labName: lab?.name || "Unknown Lab",
+        labSubject: lab?.subject || "",
+        status: row.status,
+        score: typeof row.score === "number" && Number.isFinite(row.score) ? round1(row.score) : null,
+        submittedAt: row.submittedAt || null,
+        dueAt: experiment?.dueAt || null,
+        onTime,
+        lastSaved: row.lastSaved || null,
+        feedback: row.feedback || "",
+      };
+    });
+
+    const scored = details.filter((row) => typeof row.score === "number").map((row) => row.score);
+    const statusCounts = details.reduce(
+      (acc, row) => {
+        if (row.status === "draft") acc.draft += 1;
+        if (row.status === "submitted") acc.submitted += 1;
+        if (row.status === "validated") acc.validated += 1;
+        return acc;
+      },
+      { draft: 0, submitted: 0, validated: 0 }
+    );
+
+    const stats = {
+      totalSubmissions: details.length,
+      draft: statusCounts.draft,
+      submitted: statusCounts.submitted,
+      validated: statusCounts.validated,
+      averageScore: scored.length > 0 ? round1(scored.reduce((sum, value) => sum + value, 0) / scored.length) : null,
+      bestScore: scored.length > 0 ? round1(Math.max(...scored)) : null,
+      onTimeCount: details.filter((row) => row.onTime).length,
+      lateCount: details.filter((row) => !row.onTime).length,
+    };
+
+    return res.json({
+      student: toPublicUser(student),
+      stats,
+      submissions: details,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to load student profile", error: error.message });
   }
 };
 
